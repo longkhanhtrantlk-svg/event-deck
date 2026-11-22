@@ -278,7 +278,7 @@ async function buildChannel(c, n) {
   } });
   async function fillSinks() {
     sink.replaceChildren(el('option', { value: '', textContent: 'Loa mặc định' }));
-    const seen = new Set(['', 'default']);
+    const seen = new Set(['', 'default']); deviceLabels = deviceLabels;
     try {
       for (const d of await navigator.mediaDevices.enumerateDevices())
         if (d.kind === 'audiooutput' && d.label && !seen.has(d.deviceId)) { seen.add(d.deviceId); sink.append(el('option', { value: d.deviceId, textContent: d.label })); }
@@ -286,7 +286,9 @@ async function buildChannel(c, n) {
     if (c.sinkId && !seen.has(c.sinkId)) sink.append(el('option', { value: c.sinkId, textContent: c.sinkLabel || 'Loa đã chọn' }));
     if (navigator.mediaDevices?.selectAudioOutput) sink.append(el('option', { value: '__pick', textContent: '➕ Chọn loa khác…' }));
     sink.value = c.sinkId || '';
+    if (seen.size > 2) deviceLabels = true;
   }
+  sink.addEventListener('mousedown', e => { if (!deviceLabels) { e.preventDefault(); askDevices(); } });
   if (r.audio.setSinkId) fillSinks(); else sink.hidden = true;
   const list = el('div', { className: 'list' });
 
@@ -330,6 +332,24 @@ function removeChannel(c) {
   channels = channels.filter(x => x !== c); save(); buildAll();
 }
 
+/* ---------- Quyền đọc tên thiết bị âm thanh ---------- */
+let deviceLabels = false; // true khi trình duyệt đã cho đọc tên loa
+async function askDevices() {
+  const n = $('#notice');
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true }); // chỉ để được đọc tên loa, không ghi âm
+    s.getTracks().forEach(t => t.stop());
+    n.hidden = true; await buildAll();
+    return true;
+  } catch (e) {
+    n.hidden = false;
+    n.textContent = e.name === 'NotFoundError'
+      ? 'Máy không có micro nên Chrome không cho đọc tên loa. Cắm tạm một micro/tai nghe có mic rồi bấm lại, hoặc dùng bản .exe.'
+      : 'Chrome đã chặn quyền. Bấm biểu tượng 🔒 bên trái thanh địa chỉ → đặt “Micrô” thành Cho phép → tải lại trang (F5).';
+    return false;
+  }
+}
+
 /* ---------- Khởi động ---------- */
 (async function init() {
   await load();
@@ -337,17 +357,7 @@ function removeChannel(c) {
   $('#exclusive').onchange = e => { settings.exclusive = e.target.checked; save(); };
   $('#fadeSecs').onchange = e => { settings.fade = Math.max(0, +e.target.value || 0); save(); };
   $('#addChannel').onclick = () => { channels.push(newChannel('Kênh ' + (channels.length + 1))); save(); buildAll(); };
-  $('#showDevices').onclick = async () => {
-    const n = $('#notice');
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: true }); // chỉ để trình duyệt cho phép đọc tên thiết bị
-      s.getTracks().forEach(t => t.stop());
-      n.hidden = true; await buildAll();
-    } catch (e) {
-      n.hidden = false;
-      n.textContent = 'Không đọc được tên thiết bị (' + (e.name || 'lỗi') + '). Cần cho phép micro, hoặc máy chưa có micro nào. Vẫn có thể chọn loa theo tên chung “Thiết bị xxxx”.';
-    }
-  };
+  $('#showDevices').onclick = askDevices;
   navigator.mediaDevices?.addEventListener?.('devicechange', () => buildAll()); // cắm/rút loa thì cập nhật danh sách
   $('#stopAll').onclick = () => channels.forEach(c => pauseFade(c, true));
   addEventListener('keydown', e => {
