@@ -1,7 +1,7 @@
 # 🎛 Event Deck
 
 Phần mềm phát nhạc nhiều kênh cho sự kiện: mỗi kênh có danh sách riêng
-(ví dụ **Biểu diễn**, **MC / Nghi thức**), chuyển qua lại chỉ bằng một cú bấm.
+(ví dụ nhạc biểu diễn, nhạc MC / nghi thức; đổi tên kênh tùy ý), chuyển qua lại chỉ bằng một cú bấm.
 
 ## Cách dùng
 1. Mở `index.html` bằng **Chrome** hoặc **Edge** (không cần cài đặt, không cần mạng).

@@ -66,7 +66,7 @@ async function load() {
       c.items = c.items.filter(i => i.handle); // file không có handle (phiên cũ) không thể mở lại
     }
   } else {
-    channels = [newChannel('Biểu diễn'), newChannel('MC / Nghi thức')];
+    channels = [newChannel('Kênh 1'), newChannel('Kênh 2')];
   }
   selected ||= channels[0].id;
 }

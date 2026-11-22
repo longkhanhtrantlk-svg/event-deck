@@ -1,6 +1,6 @@
 {
   "name": "event-deck",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Phần mềm phát nhạc nhiều kênh cho sự kiện",
   "main": "main.js",
   "author": "Event Deck",
