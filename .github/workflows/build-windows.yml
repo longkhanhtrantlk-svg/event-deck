@@ -1,6 +1,10 @@
 name: Build Windows exe
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tên phiên bản để tạo Release (vd v1.1.0). Để trống = chỉ build'
+        required: false
   push:
     tags: ['v*']
 permissions:
@@ -19,6 +23,11 @@ jobs:
           name: EventDeck-windows
           path: dist/*.exe
       - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
         with:
-          files: dist/*.exe
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: Event Deck ${{ inputs.tag || github.ref_name }}
+          files: |
+            dist/EventDeck-*-portable.exe
+            dist/EventDeck-*-setup.exe
