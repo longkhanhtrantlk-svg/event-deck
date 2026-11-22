@@ -318,6 +318,18 @@ function removeChannel(c) {
   $('#exclusive').onchange = e => { settings.exclusive = e.target.checked; save(); };
   $('#fadeSecs').onchange = e => { settings.fade = Math.max(0, +e.target.value || 0); save(); };
   $('#addChannel').onclick = () => { channels.push(newChannel('Kênh ' + (channels.length + 1))); save(); buildAll(); };
+  $('#showDevices').onclick = async () => {
+    const n = $('#notice');
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true }); // chỉ để trình duyệt cho phép đọc tên thiết bị
+      s.getTracks().forEach(t => t.stop());
+      n.hidden = true; await buildAll();
+    } catch (e) {
+      n.hidden = false;
+      n.textContent = 'Không đọc được tên thiết bị (' + (e.name || 'lỗi') + '). Cần cho phép micro, hoặc máy chưa có micro nào. Vẫn có thể chọn loa theo tên chung “Thiết bị xxxx”.';
+    }
+  };
+  navigator.mediaDevices?.addEventListener?.('devicechange', () => buildAll()); // cắm/rút loa thì cập nhật danh sách
   $('#stopAll').onclick = () => channels.forEach(c => pauseFade(c, true));
   addEventListener('keydown', e => {
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) && e.target.type !== 'range') return;
