@@ -45,13 +45,13 @@ function save() {
   try {
     localStorage.setItem('event-deck', JSON.stringify({
       settings, selected,
-      channels: channels.map(c => ({ id: c.id, name: c.name, volume: c.volume, mode: c.mode, sinkId: c.sinkId, cur: c.cur,
+      channels: channels.map(c => ({ id: c.id, name: c.name, volume: c.volume, mode: c.mode, sinkId: c.sinkId, sinkLabel: c.sinkLabel, cur: c.cur,
         items: c.items.map(i => ({ id: i.id, name: i.name, hasHandle: !!i.handle })) })),
     }));
   } catch {}
 }
 function newChannel(name) {
-  return { id: uid(), name, volume: 1, mode: 'continue', sinkId: '', cur: -1, items: [] };
+  return { id: uid(), name, volume: 1, mode: 'continue', sinkId: '', sinkLabel: '', cur: -1, items: [] };
 }
 async function load() {
   let d = null;
@@ -264,12 +264,30 @@ async function buildChannel(c, n) {
   const vol = el('input', { type: 'range', min: 0, max: 100, value: c.volume * 100, oninput: () => { c.volume = vol.value / 100; applyVol(c); save(); } });
   const mode = el('select', { onchange: () => { c.mode = mode.value; save(); } },
     ...[['continue', 'Phát liên tục'], ['once', 'Phát 1 bài rồi dừng'], ['loop', 'Lặp 1 bài'], ['loopall', 'Lặp cả danh sách']].map(([v, t]) => el('option', { value: v, textContent: t, selected: c.mode === v })));
-  const sink = el('select', { title: 'Thiết bị phát âm thanh của kênh này', onchange: () => { c.sinkId = sink.value; r.audio.setSinkId?.(c.sinkId).catch(() => {}); save(); } },
-    el('option', { value: '', textContent: 'Loa mặc định' }));
-  if (r.audio.setSinkId && navigator.mediaDevices?.enumerateDevices) {
-    try { (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audiooutput' && d.deviceId !== 'default')
-      .forEach(d => sink.append(el('option', { value: d.deviceId, textContent: d.label || 'Thiết bị ' + d.deviceId.slice(0, 4), selected: c.sinkId === d.deviceId }))); } catch {}
-  } else sink.hidden = true;
+  const sink = el('select', { title: 'Thiết bị phát âm thanh của kênh này', onchange: async () => {
+    if (sink.value === '__pick') {
+      // hộp chọn loa có sẵn của Chrome/Edge: không cần quyền micro
+      try {
+        const d = await navigator.mediaDevices.selectAudioOutput();
+        c.sinkId = d.deviceId; c.sinkLabel = d.label;
+      } catch {}
+    } else { c.sinkId = sink.value; c.sinkLabel = sink.selectedOptions[0]?.textContent || ''; }
+    if (c.sinkId) r.audio.setSinkId?.(c.sinkId).catch(e => alert('Không dùng được loa này: ' + e.message));
+    else r.audio.setSinkId?.('').catch(() => {});
+    save(); fillSinks();
+  } });
+  async function fillSinks() {
+    sink.replaceChildren(el('option', { value: '', textContent: 'Loa mặc định' }));
+    const seen = new Set(['', 'default']);
+    try {
+      for (const d of await navigator.mediaDevices.enumerateDevices())
+        if (d.kind === 'audiooutput' && d.label && !seen.has(d.deviceId)) { seen.add(d.deviceId); sink.append(el('option', { value: d.deviceId, textContent: d.label })); }
+    } catch {}
+    if (c.sinkId && !seen.has(c.sinkId)) sink.append(el('option', { value: c.sinkId, textContent: c.sinkLabel || 'Loa đã chọn' }));
+    if (navigator.mediaDevices?.selectAudioOutput) sink.append(el('option', { value: '__pick', textContent: '➕ Chọn loa khác…' }));
+    sink.value = c.sinkId || '';
+  }
+  if (r.audio.setSinkId) fillSinks(); else sink.hidden = true;
   const list = el('div', { className: 'list' });
 
   const root = el('section', { className: 'ch' },
@@ -297,6 +315,7 @@ async function buildChannel(c, n) {
     finishAdd(c);
   });
   ui.root = root; ui.list = list; ui.play = play; r.ui = ui;
+  if (c.sinkId && r.audio.setSinkId) r.audio.setSinkId(c.sinkId).catch(() => {});
   renderList(c, ui); refresh(c); applyVol(c);
   return root;
 }
