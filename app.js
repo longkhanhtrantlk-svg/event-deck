@@ -69,7 +69,7 @@ const idb = {
 };
 
 /* ---------- Trạng thái ---------- */
-const settings = { exclusive: true, fade: 2, viz: 'wave' };
+const settings = { exclusive: true, fade: 2, viz: 'seek' };
 let channels = [];
 let selected = null;
 let view = 'play';
@@ -90,6 +90,7 @@ async function load() {
   try { d = JSON.parse(localStorage.getItem('event-deck')); } catch {}
   if (d?.channels?.length) {
     Object.assign(settings, d.settings || {});
+    if (settings.viz === 'wave') settings.viz = 'seek'; // kiểu cũ -> kiểu mới theo thanh tua
     selected = d.selected;
     channels = d.channels;
     for (const [n, c] of channels.entries()) {
@@ -137,7 +138,7 @@ function R(c) {
   let r = rt.get(c.id);
   if (!r) {
     const audio = new Audio(); audio.preload = 'auto'; audio.playbackRate = 1;
-    r = { audio, url: null, coverUrl: null, fadeTimer: null, fadeMul: 1, an: null, buf: null, src: null, spec: new Float32Array(32) };
+    r = { audio, url: null, coverUrl: null, fadeTimer: null, fadeMul: 1, an: null, buf: null, src: null, spec: new Float32Array(32), hist: new Float32Array(480), lastIdx: -1 };
     audio.addEventListener('ended', () => onEnded(c));
     audio.addEventListener('timeupdate', () => updateSeek(c));
     audio.addEventListener('play', () => refresh(c));
@@ -187,6 +188,7 @@ async function loadTrack(c, index, autoplay) {
     if (r.coverUrl) { URL.revokeObjectURL(r.coverUrl); r.coverUrl = null; }
     r.url = URL.createObjectURL(file);
     r.audio.src = r.url; r.audio.playbackRate = 1;
+    r.hist.fill(0); r.lastIdx = -1; // bài mới: xóa sóng đã ghi
     c.cur = index; applyVol(c);
     if (c.sinkId && r.audio.setSinkId) r.audio.setSinkId(c.sinkId).catch(() => {});
     readCover(file).then(b => { if (b && c.cur === index) { r.coverUrl = URL.createObjectURL(b); refresh(c); } });
@@ -366,7 +368,8 @@ async function buildChannel(c, n) {
   const stage = el('div', { className: 'stage' }, canvas, cover, el('div', { className: 'meta' }, title, sub), times);
 
   const seek = el('input', { type: 'range', min: 0, max: 1000, value: 0 });
-  const ui = { dragging: false, seek, times, title, sub, cover, status, chicon, canvas, g: canvas.getContext('2d') };
+  const seekCv = el('canvas', { className: 'seekwave' });
+  const ui = { dragging: false, seek, seekCv, sg: seekCv.getContext('2d'), times, title, sub, cover, status, chicon, canvas, g: canvas.getContext('2d') };
   seek.oninput = () => { ui.dragging = true; seek.style.setProperty('--p', seek.value / 10 + '%'); if (r.audio.duration) r.audio.currentTime = seek.value / 1000 * r.audio.duration; };
   seek.onchange = () => { ui.dragging = false; };
 
@@ -401,7 +404,7 @@ async function buildChannel(c, n) {
   const root = el('section', { className: 'ch' },
     el('div', { className: 'ch-head' }, num, chicon, name, status, kebab),
     stage,
-    el('div', { className: 'seek' }, seek),
+    el('div', { className: 'seek' }, seekCv, seek),
     el('div', { className: 'ctrl' },
       rb('', 'prev', 20, 'Bài trước (←)', () => { select(c.id); prev(c); }), play,
       rb('', 'next', 20, 'Bài sau (→)', () => { select(c.id); next(c); }),
@@ -497,11 +500,46 @@ function updateSpec(c, r) {
   } else for (let i = 0; i < 32; i++) spec[i] *= 0.9;
   return live;
 }
+/* ghi lại mức âm theo vị trí phát: phát tới đâu có sóng tới đó */
+function recordHist(c, r) {
+  const a = r.audio; if (!a.duration || !isPlaying(c)) return;
+  const N = r.hist.length, idx = Math.min(N - 1, Math.floor(a.currentTime / a.duration * N));
+  let s = 0; for (let i = 0; i < 24; i++) s += r.spec[i]; 
+  const lv = Math.min(1, Math.pow(s / 24 * 2.4, 0.85));
+  const from = r.lastIdx >= 0 && idx - r.lastIdx > 0 && idx - r.lastIdx < 6 ? r.lastIdx + 1 : idx; // lấp khoảng trống nhỏ khi khung hình bị trễ
+  for (let i = from; i <= idx; i++) r.hist[i] = i === idx ? Math.max(lv, r.hist[i] * 0.6) : lv;
+  r.lastIdx = idx;
+}
+function drawSeekWave(c, r, t) {
+  const u = r.ui, cv = u.seekCv; const [w, h] = sizeCanvas(cv); if (!w) return;
+  const g = u.sg; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  if (settings.viz !== 'seek') return;
+  const a = r.audio, N = r.hist.length, pad = 7.5;
+  const pct = a.duration ? a.currentTime / a.duration : 0;
+  const px = pad + pct * (w - 2 * pad); if (px <= pad + 1) return;
+  const col = COLORS[c.id === selected ? 'vio' : 'blue'], span = w - 2 * pad;
+  const val = x => { // giá trị tại x: trung bình 3 ô cho mượt
+    const f = (x - pad) / span * N, i = Math.min(N - 1, Math.max(0, Math.floor(f)));
+    return (r.hist[Math.max(0, i - 1)] + r.hist[i] * 2 + r.hist[Math.min(N - 1, i + 1)]) / 4;
+  };
+  [[1, 0.95], [0.62, 0.5]].forEach(([k, al], L) => {
+    g.beginPath(); g.moveTo(pad, h);
+    for (let x = pad; x <= px; x += 2) {
+      const edge = Math.min(1, (px - x) / 18 + 0.25), v = val(x * (L ? 0.995 : 1));
+      g.lineTo(x, h - (1.5 + v * (h - 3) * k * (0.88 + 0.12 * Math.sin(x * 0.09 + L * 2))) * edge);
+    }
+    g.lineTo(px, h); g.closePath();
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, col[0]); gr.addColorStop(1, col[1]);
+    g.globalAlpha = al * (L ? 0.55 : 0.9); g.fillStyle = gr; g.shadowColor = col[0]; g.shadowBlur = L ? 0 : 8; g.fill(); g.shadowBlur = 0;
+  });
+  g.globalAlpha = 1;
+}
 function drawChannel(c, r, t) {
   const u = r.ui; if (!u || view !== 'play') return;
+  drawSeekWave(c, r, t);
   const [w, h] = sizeCanvas(u.canvas); if (!w) return;
   const g = u.g; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
-  if (settings.viz === 'off') return;
+  if (settings.viz === 'off' || settings.viz === 'seek') return;
   const col = COLORS[c.id === selected ? 'vio' : 'blue'];
   const spec = r.spec;
   const at = p => { const x = p * 31, i = Math.floor(x), f = x - i; return Math.min(1, ((spec[i] || 0) * (1 - f) + (spec[Math.min(31, i + 1)] || 0) * f) * 1.7); };
@@ -541,7 +579,7 @@ let lastFrame = 0;
 function loop(t) {
   requestAnimationFrame(loop);
   if (t - lastFrame < 33) return; lastFrame = t; // ~30 khung/giây
-  for (const c of channels) { const r = rt.get(c.id); if (r) { updateSpec(c, r); drawChannel(c, r, t); } }
+  for (const c of channels) { const r = rt.get(c.id); if (r) { updateSpec(c, r); recordHist(c, r); drawChannel(c, r, t); } }
   drawMaster(t);
 }
 
