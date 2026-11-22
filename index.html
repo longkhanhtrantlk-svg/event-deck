@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Event Deck – Phát nhạc nhiều kênh</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🎛 Event Deck</h1>
+  <div class="toolbar">
+    <button id="addChannel">+ Thêm kênh</button>
+    <label class="chk" title="Khi bấm phát ở một kênh, các kênh khác sẽ mờ dần và dừng">
+      <input type="checkbox" id="exclusive" checked> Chỉ 1 kênh phát (tự chuyển)
+    </label>
+    <label class="chk">Thời gian mờ dần
+      <input type="number" id="fadeSecs" min="0" max="30" step="0.5" value="2"> giây
+    </label>
+    <button id="stopAll" class="danger">⏹ Dừng tất cả</button>
+  </div>
+</header>
+<div id="notice" hidden></div>
+<main id="channels"></main>
+<footer>
+  Phím tắt (kênh đang chọn): <b>Space</b> phát/tạm dừng · <b>→</b> bài sau · <b>←</b> bài trước · <b>F</b> mờ dần &amp; dừng · <b>1–9</b> chọn kênh
+</footer>
+<script src="app.js"></script>
+</body>
+</html>
