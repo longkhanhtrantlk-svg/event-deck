@@ -511,37 +511,42 @@ function recordHist(c, r) {
   for (let i = from; i <= idx; i++) r.hist[i] = i === idx ? Math.max(lv, r.hist[i] * 0.6) : lv;
   r.lastIdx = idx;
 }
+const HILL_COLORS = {
+  vio: ['#a855f7', '#e9b6ff', '#c084fc', '#f5d0fe'],
+  blue: ['#3b82f6', '#a5d0ff', '#60a5fa', '#c7f0ff'],
+};
+const smooth = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
 function drawSeekWave(c, r, t) {
   const u = r.ui, cv = u.seekCv; const [w, h] = sizeCanvas(cv); if (!w) return;
   const g = u.sg; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
-  u.seekBox.classList.toggle('wv', settings.viz === 'seek');
   if (settings.viz !== 'seek') return;
-  const a = r.audio, N = r.hist.length, pad = 7.5, span = w - 2 * pad;
+  const a = r.audio, N = r.hist.length, pad = 9, span = w - 2 * pad;
   const pct = a.duration ? a.currentTime / a.duration : 0, px = pad + pct * span;
-  if (px <= pad + 2) return;
-  const playing = isPlaying(c), live = r.live || 0, mid = h / 2;
-  if (playing) r.ph = t / 420; // pha sóng trôi chậm; dừng thì giữ nguyên
-  const ph = r.ph || 0;
-  const col = COLORS[c.id === selected ? 'vio' : 'blue'];
-  const val = x => { // mức âm đã ghi, làm mượt trên 9 ô
+  if (px <= pad + 6) return;
+  const playing = isPlaying(c), live = r.live || 0;
+  if (playing) r.ph = t / 1000; // pha trôi chậm; dừng thì các lớp đồi đứng yên
+  const ph = r.ph || 0, base = h - 9, maxH = h - 16;
+  const cols = HILL_COLORS[c.id === selected ? 'vio' : 'blue'];
+  const val = x => { // mức âm đã ghi, làm mượt trên vùng rộng
     const i = Math.round((x - pad) / span * N); let s = 0, n = 0;
-    for (let k = -4; k <= 4; k++) { const j = i + k; if (j >= 0 && j < N) { s += r.hist[j]; n++; } }
+    for (let k = -10; k <= 10; k++) { const j = i + k; if (j >= 0 && j < N) { s += r.hist[j]; n++; } }
     return n ? s / n : 0;
   };
-  const trace = (amp, wl, phase) => {
-    g.beginPath();
-    for (let x = pad; x <= px; x += 1.5) {
-      const env = Math.min(1, (x - pad) / 26), head = Math.min(1, (px - x) / 6 + 0.4);
-      const v = Math.min(1, (playing ? val(x) * 0.75 + live * 0.25 : val(x)) * 1.2);
-      const y = mid - (1 + amp * v) * env * head * Math.sin(x / wl - phase);
-      x === pad ? g.moveTo(x, y) : g.lineTo(x, y);
+  // [biên độ, độ rộng đồi, tốc độ trôi, màu]; vẽ từ lớp sau ra lớp trước
+  const layers = [[0.62, 38, -0.35, 3], [0.78, 27, 0.4, 2], [0.88, 20, -0.5, 1], [1, 14.5, 0.6, 0]];
+  layers.forEach(([amp, lam, sp, ci], L) => {
+    g.beginPath(); g.moveTo(pad, base);
+    for (let x = pad; x <= px; x += 2) {
+      const ramp = smooth((x - pad) / 46) * smooth((px - x) / 40);
+      const vv = Math.min(1, (playing ? val(x) * 0.7 + live * 0.3 : val(x)) * 1.35);
+      const shape = Math.pow(0.5 + 0.5 * Math.sin(x / lam - ph * sp * 3 + L * 1.9), 1.7);
+      g.lineTo(x, base - amp * maxH * ramp * (0.18 + 0.82 * vv) * (0.25 + 0.75 * shape));
     }
-  };
-  g.lineCap = 'round'; g.lineJoin = 'round';
-  const gr = g.createLinearGradient(pad, 0, px, 0); gr.addColorStop(0, col[1]); gr.addColorStop(1, col[0]);
-  trace(h * 0.2, 4.4, ph * 0.7 + 1.2); g.strokeStyle = gr; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.stroke();   // lớp mờ phía sau
-  trace(h * 0.26, 4.4, ph); g.globalAlpha = 1; g.lineWidth = 3; g.shadowColor = col[0]; g.shadowBlur = 7; g.stroke(); // đường chính
-  g.shadowBlur = 0;
+    g.lineTo(px, base); g.closePath();
+    const gr = g.createLinearGradient(0, base - maxH, 0, base);
+    gr.addColorStop(0, cols[ci] + (L === 3 ? 'e6' : '99')); gr.addColorStop(1, cols[ci] + '33');
+    g.fillStyle = gr; g.fill();
+  });
 }
 function drawChannel(c, r, t) {
   const u = r.ui; if (!u || view !== 'play') return;
