@@ -522,7 +522,7 @@ function drawSeekWave(c, r, t) {
   if (settings.viz !== 'seek') return;
   const a = r.audio, N = r.hist.length, pad = 9, span = w - 2 * pad;
   const pct = a.duration ? a.currentTime / a.duration : 0, px = pad + pct * span;
-  if (px <= pad + 6) return;
+  if (px <= pad + 2) return;
   const playing = isPlaying(c), live = r.live || 0;
   if (playing) r.ph = t / 1000; // pha trôi chậm; dừng thì các lớp đồi đứng yên
   const ph = r.ph || 0, base = h - 9, maxH = h - 16;
@@ -537,10 +537,10 @@ function drawSeekWave(c, r, t) {
   layers.forEach(([amp, lam, sp, ci], L) => {
     g.beginPath(); g.moveTo(pad, base);
     for (let x = pad; x <= px; x += 2) {
-      const ramp = smooth((x - pad) / 46) * smooth((px - x) / 40);
+      const ramp = (0.8 + 0.2 * smooth((x - pad) / 10)) * (0.6 + 0.4 * smooth((px - x) / 22)); // bắt đầu cao ngay từ mép trái
       const vv = Math.min(1, (playing ? val(x) * 0.7 + live * 0.3 : val(x)) * 1.35);
       const shape = Math.pow(0.5 + 0.5 * Math.sin(x / lam - ph * sp * 3 + L * 1.9), 1.7);
-      g.lineTo(x, base - amp * maxH * ramp * (0.18 + 0.82 * vv) * (0.25 + 0.75 * shape));
+      g.lineTo(x, base - amp * maxH * ramp * (0.3 + 0.7 * vv) * (0.4 + 0.6 * shape));
     }
     g.lineTo(px, base); g.closePath();
     const gr = g.createLinearGradient(0, base - maxH, 0, base);
