@@ -505,7 +505,7 @@ function recordHist(c, r) {
   const a = r.audio; if (!a.duration || !isPlaying(c)) return;
   const N = r.hist.length, idx = Math.min(N - 1, Math.floor(a.currentTime / a.duration * N));
   let s = 0; for (let i = 0; i < 24; i++) s += r.spec[i]; 
-  const lv = Math.min(1, Math.pow(s / 24 * 2.4, 0.85));
+  const lv = Math.min(1, Math.pow(s / 24 * 2.4, 0.85)); r.live = lv;
   const from = r.lastIdx >= 0 && idx - r.lastIdx > 0 && idx - r.lastIdx < 6 ? r.lastIdx + 1 : idx; // lấp khoảng trống nhỏ khi khung hình bị trễ
   for (let i = from; i <= idx; i++) r.hist[i] = i === idx ? Math.max(lv, r.hist[i] * 0.6) : lv;
   r.lastIdx = idx;
@@ -522,11 +522,15 @@ function drawSeekWave(c, r, t) {
     const f = (x - pad) / span * N, i = Math.min(N - 1, Math.max(0, Math.floor(f)));
     return (r.hist[Math.max(0, i - 1)] + r.hist[i] * 2 + r.hist[Math.min(N - 1, i + 1)]) / 4;
   };
+  const playing = isPlaying(c), live = r.live || 0;
   [[1, 0.95], [0.62, 0.5]].forEach(([k, al], L) => {
     g.beginPath(); g.moveTo(pad, h);
     for (let x = pad; x <= px; x += 2) {
-      const edge = Math.min(1, (px - x) / 18 + 0.25), v = val(x * (L ? 0.995 : 1));
-      g.lineTo(x, h - (1.5 + v * (h - 3) * k * (0.88 + 0.12 * Math.sin(x * 0.09 + L * 2))) * edge);
+      const edge = Math.min(1, (px - x) / 18 + 0.25);
+      // nhấp nhô liên tục: sóng chạy dọc theo thanh khi đang phát
+      const wob = playing ? 1 + 0.32 * Math.sin(x * 0.13 - t / 230 + L * 1.7) + 0.18 * Math.sin(x * 0.31 + t / 140 - L) : 1;
+      const v = playing ? Math.max(0.1, val(x * (L ? 0.995 : 1)) * 0.7 + live * 0.35) : val(x * (L ? 0.995 : 1));
+      g.lineTo(x, h - Math.min(h - 1, (1.5 + v * (h - 3) * k * wob) * edge));
     }
     g.lineTo(px, h); g.closePath();
     const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, col[0]); gr.addColorStop(1, col[1]);
