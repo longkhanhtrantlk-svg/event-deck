@@ -369,7 +369,8 @@ async function buildChannel(c, n) {
 
   const seek = el('input', { type: 'range', min: 0, max: 1000, value: 0 });
   const seekCv = el('canvas', { className: 'seekwave' });
-  const ui = { dragging: false, seek, seekCv, sg: seekCv.getContext('2d'), times, title, sub, cover, status, chicon, canvas, g: canvas.getContext('2d') };
+  const seekBox = el('div', { className: 'seek' }, seekCv, seek);
+  const ui = { dragging: false, seekBox, seek, seekCv, sg: seekCv.getContext('2d'), times, title, sub, cover, status, chicon, canvas, g: canvas.getContext('2d') };
   seek.oninput = () => { ui.dragging = true; seek.style.setProperty('--p', seek.value / 10 + '%'); if (r.audio.duration) r.audio.currentTime = seek.value / 1000 * r.audio.duration; };
   seek.onchange = () => { ui.dragging = false; };
 
@@ -404,7 +405,7 @@ async function buildChannel(c, n) {
   const root = el('section', { className: 'ch' },
     el('div', { className: 'ch-head' }, num, chicon, name, status, kebab),
     stage,
-    el('div', { className: 'seek' }, seekCv, seek),
+    seekBox,
     el('div', { className: 'ctrl' },
       rb('', 'prev', 20, 'Bài trước (←)', () => { select(c.id); prev(c); }), play,
       rb('', 'next', 20, 'Bài sau (→)', () => { select(c.id); next(c); }),
@@ -513,30 +514,34 @@ function recordHist(c, r) {
 function drawSeekWave(c, r, t) {
   const u = r.ui, cv = u.seekCv; const [w, h] = sizeCanvas(cv); if (!w) return;
   const g = u.sg; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  u.seekBox.classList.toggle('wv', settings.viz === 'seek');
   if (settings.viz !== 'seek') return;
-  const a = r.audio, N = r.hist.length, pad = 7.5;
-  const pct = a.duration ? a.currentTime / a.duration : 0;
-  const px = pad + pct * (w - 2 * pad); if (px <= pad + 1) return;
-  const col = COLORS[c.id === selected ? 'vio' : 'blue'], span = w - 2 * pad;
-  const val = x => { // giá trị tại x: trung bình 3 ô cho mượt
-    const f = (x - pad) / span * N, i = Math.min(N - 1, Math.max(0, Math.floor(f)));
-    return (r.hist[Math.max(0, i - 1)] + r.hist[i] * 2 + r.hist[Math.min(N - 1, i + 1)]) / 4;
+  const a = r.audio, N = r.hist.length, pad = 7.5, span = w - 2 * pad;
+  const pct = a.duration ? a.currentTime / a.duration : 0, px = pad + pct * span;
+  if (px <= pad + 2) return;
+  const playing = isPlaying(c), live = r.live || 0, mid = h / 2;
+  if (playing) r.ph = t / 420; // pha sóng trôi chậm; dừng thì giữ nguyên
+  const ph = r.ph || 0;
+  const col = COLORS[c.id === selected ? 'vio' : 'blue'];
+  const val = x => { // mức âm đã ghi, làm mượt trên 9 ô
+    const i = Math.round((x - pad) / span * N); let s = 0, n = 0;
+    for (let k = -4; k <= 4; k++) { const j = i + k; if (j >= 0 && j < N) { s += r.hist[j]; n++; } }
+    return n ? s / n : 0;
   };
-  const playing = isPlaying(c), live = r.live || 0;
-  [[1, 0.95], [0.62, 0.5]].forEach(([k, al], L) => {
-    g.beginPath(); g.moveTo(pad, h);
-    for (let x = pad; x <= px; x += 2) {
-      const edge = Math.min(1, (px - x) / 18 + 0.25);
-      // nhấp nhô liên tục: sóng chạy dọc theo thanh khi đang phát
-      const wob = playing ? 1 + 0.32 * Math.sin(x * 0.13 - t / 230 + L * 1.7) + 0.18 * Math.sin(x * 0.31 + t / 140 - L) : 1;
-      const v = playing ? Math.max(0.1, val(x * (L ? 0.995 : 1)) * 0.7 + live * 0.35) : val(x * (L ? 0.995 : 1));
-      g.lineTo(x, h - Math.min(h - 1, (1.5 + v * (h - 3) * k * wob) * edge));
+  const trace = (amp, wl, phase) => {
+    g.beginPath();
+    for (let x = pad; x <= px; x += 1.5) {
+      const env = Math.min(1, (x - pad) / 26), head = Math.min(1, (px - x) / 6 + 0.4);
+      const v = Math.min(1, (playing ? val(x) * 0.75 + live * 0.25 : val(x)) * 1.2);
+      const y = mid - (1 + amp * v) * env * head * Math.sin(x / wl - phase);
+      x === pad ? g.moveTo(x, y) : g.lineTo(x, y);
     }
-    g.lineTo(px, h); g.closePath();
-    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, col[0]); gr.addColorStop(1, col[1]);
-    g.globalAlpha = al * (L ? 0.55 : 0.9); g.fillStyle = gr; g.shadowColor = col[0]; g.shadowBlur = L ? 0 : 8; g.fill(); g.shadowBlur = 0;
-  });
-  g.globalAlpha = 1;
+  };
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const gr = g.createLinearGradient(pad, 0, px, 0); gr.addColorStop(0, col[1]); gr.addColorStop(1, col[0]);
+  trace(h * 0.2, 4.4, ph * 0.7 + 1.2); g.strokeStyle = gr; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.stroke();   // lớp mờ phía sau
+  trace(h * 0.26, 4.4, ph); g.globalAlpha = 1; g.lineWidth = 3; g.shadowColor = col[0]; g.shadowBlur = 7; g.stroke(); // đường chính
+  g.shadowBlur = 0;
 }
 function drawChannel(c, r, t) {
   const u = r.ui; if (!u || view !== 'play') return;
