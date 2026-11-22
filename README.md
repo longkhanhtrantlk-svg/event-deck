@@ -26,7 +26,7 @@ Chỉ gồm `index.html`, `style.css`, `app.js` thuần, không cần build.
 ## Bản Windows (.exe)
 Tải từ mục **Releases** của repo:
 - `EventDeck-x.y.z-portable.exe`: chạy thẳng, không cần cài.
-- `EventDeck-x.y.z-nsis.exe`: bản cài đặt.
+- `EventDeck-x.y.z-setup.exe`: bản cài đặt.
 
 Tự build: chạy workflow **Build Windows exe** trong tab Actions (file nằm ở Artifacts),
 hoặc trên Windows: `npm ci && npm run dist` (kết quả trong `dist/`).

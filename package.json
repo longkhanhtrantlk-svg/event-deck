@@ -12,9 +12,27 @@
   "build": {
     "appId": "com.eventdeck.app",
     "productName": "Event Deck",
-    "files": ["main.js", "index.html", "style.css", "app.js", "package.json"],
-    "win": { "target": ["portable", "nsis"], "artifactName": "EventDeck-${version}-${target}.${ext}" },
-    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+    "files": [
+      "main.js",
+      "index.html",
+      "style.css",
+      "app.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "EventDeck-${version}-setup.exe"
+    },
+    "portable": {
+      "artifactName": "EventDeck-${version}-portable.exe"
+    }
   },
   "devDependencies": {
     "electron": "33.2.1",
