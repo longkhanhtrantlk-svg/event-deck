@@ -8,24 +8,64 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>🎛 Event Deck</h1>
-  <div class="toolbar">
-    <button id="addChannel">+ Thêm kênh</button>
-    <label class="chk" title="Khi bấm phát ở một kênh, các kênh khác sẽ mờ dần và dừng">
-      <input type="checkbox" id="exclusive" checked> Chỉ 1 kênh phát (tự chuyển)
-    </label>
-    <label class="chk">Thời gian mờ dần
-      <input type="number" id="fadeSecs" min="0" max="30" step="0.5" value="2"> giây
-    </label>
-    <button id="showDevices" title="Cấp quyền để hiện tên thật của các loa/thiết bị âm thanh">🔈 Hiện tên loa</button>
-    <button id="stopAll" class="danger">⏹ Dừng tất cả</button>
+<header class="top">
+  <div class="brand">
+    <svg id="logo" viewBox="0 0 64 40" width="56" height="36" aria-hidden="true">
+      <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5aa8ff"/><stop offset="1" stop-color="#b57bff"/></linearGradient></defs>
+      <g fill="url(#lg)"><rect class="lb" x="2" y="15" width="4" height="10" rx="2"/><rect class="lb" x="10" y="9" width="4" height="22" rx="2"/><rect class="lb" x="18" y="3" width="4" height="34" rx="2"/><rect class="lb" x="26" y="11" width="4" height="18" rx="2"/><rect class="lb" x="34" y="5" width="4" height="30" rx="2"/><rect class="lb" x="42" y="12" width="4" height="16" rx="2"/><rect class="lb" x="50" y="7" width="4" height="26" rx="2"/><rect class="lb" x="58" y="16" width="4" height="8" rx="2"/></g>
+    </svg>
+    <div><h1>Event Deck</h1><p>Phát nhạc nhiều kênh cho sự kiện</p></div>
   </div>
+  <nav class="tabs">
+    <button data-view="play" class="on"><i data-ic="play"></i>Phát nhạc</button>
+    <button data-view="list"><i data-ic="list"></i>Danh sách</button>
+    <button data-view="settings"><i data-ic="gear"></i>Cài đặt</button>
+  </nav>
+  <div class="top-r"></div>
 </header>
+
 <div id="notice" hidden></div>
-<main id="channels"></main>
+
+<section id="view-play" class="view">
+  <div class="toolbar">
+    <button id="addChannel" class="btn primary"><i data-ic="plus"></i>Thêm kênh</button>
+    <span class="sep"></span>
+    <label class="chk" title="Khi bấm phát ở một kênh, các kênh khác sẽ mờ dần và tạm dừng">
+      <input type="checkbox" id="exclusive" checked><span class="box"></span> Chỉ 1 kênh phát (tự chuyển)
+    </label>
+    <span class="sep"></span>
+    <label class="fade">Thời gian mờ dần <input type="number" id="fadeSecs" min="0" max="30" step="0.5" value="2"> giây</label>
+    <span class="grow"></span>
+    <button id="showDevices" class="btn" title="Cấp quyền để hiện tên thật của các loa"><i data-ic="vol"></i>Hiện tên loa</button>
+    <button id="stopAll" class="btn danger"><i data-ic="stop"></i>Dừng tất cả</button>
+  </div>
+  <main id="channels"></main>
+</section>
+
+<section id="view-list" class="view" hidden>
+  <div class="panel">
+    <div class="panel-head"><h2>Tất cả bài nhạc</h2><input id="libSearch" type="search" placeholder="Tìm bài hát…"></div>
+    <div id="libBody"></div>
+  </div>
+</section>
+
+<section id="view-settings" class="view" hidden>
+  <div class="panel">
+    <h2>Cài đặt</h2>
+    <div class="row"><div><b>Hiệu ứng sóng âm</b><small>Hiển thị khi nhạc đang phát</small></div>
+      <select id="vizStyle"><option value="wave">Sóng</option><option value="bars">Cột</option><option value="off">Tắt</option></select></div>
+    <div class="row"><div><b>Tên các loa</b><small>Cho phép đọc tên thiết bị âm thanh (Chrome cần quyền micro, bản .exe không cần)</small></div>
+      <button id="showDevices2" class="btn">Cấp quyền</button></div>
+    <div class="row"><div><b>Đặt lại</b><small>Xóa mọi kênh, danh sách nhạc và cài đặt đã lưu</small></div>
+      <button id="resetAll" class="btn danger">Xóa dữ liệu</button></div>
+    <h3>Phím tắt (kênh đang chọn)</h3>
+    <ul class="keys"><li><kbd>Space</kbd> phát / tạm dừng</li><li><kbd>←</kbd> bài trước</li><li><kbd>→</kbd> bài sau</li><li><kbd>F</kbd> mờ dần &amp; dừng</li><li><kbd>1</kbd>–<kbd>9</kbd> chọn kênh</li></ul>
+  </div>
+</section>
+
 <footer>
-  Phím tắt (kênh đang chọn): <b>Space</b> phát/tạm dừng · <b>→</b> bài sau · <b>←</b> bài trước · <b>F</b> mờ dần &amp; dừng · <b>1–9</b> chọn kênh
+  <span class="hint"><i data-ic="info"></i>Phím tắt (kênh đang chọn): <b>Space</b> phát/tạm dừng · <b>←</b> bài trước · <b>→</b> bài sau · <b>F</b> mờ dần &amp; dừng · <b>1–9</b> chọn kênh</span>
+  <canvas id="master" width="320" height="44"></canvas>
 </footer>
 <script src="app.js"></script>
 </body>

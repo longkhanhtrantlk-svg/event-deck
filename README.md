@@ -30,3 +30,7 @@ Tải từ mục **Releases** của repo:
 
 Tự build: chạy workflow **Build Windows exe** trong tab Actions (file nằm ở Artifacts),
 hoặc trên Windows: `npm ci && npm run dist` (kết quả trong `dist/`).
+
+## Giao diện & sóng âm
+Giao diện tối kiểu "glass", 3 tab: **Phát nhạc**, **Danh sách** (tìm bài, phát nhanh, chuyển bài giữa các kênh) và **Cài đặt**.
+Mỗi kênh có hiệu ứng sóng âm phản ứng theo nhạc đang phát (chọn Sóng / Cột / Tắt trong Cài đặt) và hiện ảnh bìa nếu file mp3 có sẵn.

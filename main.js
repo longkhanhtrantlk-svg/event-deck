@@ -5,7 +5,7 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1280, height: 800, title: 'Event Deck', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#14161a',
+    width: 1280, height: 800, title: 'Event Deck', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#070b24',
     webPreferences: { backgroundThrottling: false }, // giữ nhạc/mờ dần chạy đúng khi cửa sổ bị che
   });
   Menu.setApplicationMenu(null);
