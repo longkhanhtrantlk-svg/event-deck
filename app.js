@@ -1,5 +1,5 @@
 'use strict';
-/* Event Deck – phát nhạc nhiều kênh.
+/* SoundLane – phát nhạc nhiều kênh.
    Phát bằng HTMLAudioElement thuần (playbackRate = 1, không kéo giãn tempo) nên nhạc đúng tốc độ gốc.
    Sóng âm: đọc tín hiệu qua audio.captureStream() -> AnalyserNode (nhánh phụ, không đổi đường phát/loa). */
 
@@ -50,7 +50,7 @@ const idb = {
   db: null,
   open() {
     return this.db ||= new Promise((res, rej) => {
-      const r = indexedDB.open('event-deck', 1);
+      const r = indexedDB.open('event-deck', 1); // tên cũ giữ nguyên để không mất dữ liệu
       r.onupgradeneeded = () => r.result.createObjectStore('handles');
       r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
     });

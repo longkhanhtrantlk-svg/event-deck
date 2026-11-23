@@ -20,14 +20,14 @@ jobs:
       - run: npm run dist
       - uses: actions/upload-artifact@v4
         with:
-          name: EventDeck-windows
+          name: SoundLane-windows
           path: dist/*.exe
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
         with:
           tag_name: ${{ inputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: Event Deck ${{ inputs.tag || github.ref_name }}
+          name: SoundLane ${{ inputs.tag || github.ref_name }}
           files: |
-            dist/EventDeck-*-portable.exe
-            dist/EventDeck-*-setup.exe
+            dist/SoundLane-*-portable.exe
+            dist/SoundLane-*-setup.exe

@@ -1,4 +1,4 @@
-# 🎛 Event Deck
+# SoundLane
 
 Phần mềm phát nhạc nhiều kênh cho sự kiện: mỗi kênh có danh sách riêng
 (ví dụ nhạc biểu diễn, nhạc MC / nghi thức; đổi tên kênh tùy ý), chuyển qua lại chỉ bằng một cú bấm.
@@ -25,8 +25,8 @@ Chỉ gồm `index.html`, `style.css`, `app.js` thuần, không cần build.
 
 ## Bản Windows (.exe)
 Tải từ mục **Releases** của repo:
-- `EventDeck-x.y.z-portable.exe`: chạy thẳng, không cần cài.
-- `EventDeck-x.y.z-setup.exe`: bản cài đặt.
+- `SoundLane-x.y.z-portable.exe`: chạy thẳng, không cần cài.
+- `SoundLane-x.y.z-setup.exe`: bản cài đặt.
 
 Tự build: chạy workflow **Build Windows exe** trong tab Actions (file nằm ở Artifacts),
 hoặc trên Windows: `npm ci && npm run dist` (kết quả trong `dist/`).

@@ -1,11 +1,13 @@
 const { app, BrowserWindow, session, Menu } = require('electron');
 const path = require('path');
 
+// giữ nguyên dữ liệu đã lưu (danh sách nhạc, cài đặt) từ bản mang tên Event Deck
+app.setPath('userData', path.join(app.getPath('appData'), 'Event Deck'));
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1280, height: 800, title: 'Event Deck', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#070b24',
+    width: 1280, height: 800, title: 'SoundLane', icon: path.join(__dirname, 'build', 'icon.png'), backgroundColor: '#070b24',
     webPreferences: { backgroundThrottling: false }, // giữ nhạc/mờ dần chạy đúng khi cửa sổ bị che
   });
   Menu.setApplicationMenu(null);

@@ -1,17 +1,17 @@
 {
-  "name": "event-deck",
-  "version": "1.7.1",
-  "description": "Phần mềm phát nhạc nhiều kênh cho sự kiện",
+  "name": "soundlane",
+  "version": "1.8.0",
+  "description": "SoundLane – phát nhạc nhiều kênh cho sự kiện",
   "main": "main.js",
-  "author": "Event Deck",
+  "author": "SoundLane",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win --publish never"
   },
   "build": {
-    "appId": "com.eventdeck.app",
-    "productName": "Event Deck",
+    "appId": "com.soundlane.app",
+    "productName": "SoundLane",
     "files": [
       "main.js",
       "index.html",
@@ -29,10 +29,10 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "EventDeck-${version}-setup.exe"
+      "artifactName": "SoundLane-${version}-setup.exe"
     },
     "portable": {
-      "artifactName": "EventDeck-${version}-portable.exe"
+      "artifactName": "SoundLane-${version}-portable.exe"
     }
   },
   "devDependencies": {
