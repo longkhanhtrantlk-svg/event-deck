@@ -1,5 +1,5 @@
 """Tạo icon SoundLane: python3 build/make_icon.py  (cần Pillow)
-4 làn sóng âm song song + nút Play, màu chuyển xanh ngọc -> tím."""
+Nút Play đặc với 3 làn sóng âm khoét bên trong, màu chuyển xanh ngọc -> tím."""
 from PIL import Image, ImageDraw, ImageFilter, ImageChops
 
 S = 1024
@@ -24,20 +24,17 @@ rr(mask, (40, 40, S - 40, S - 40), 235)
 icon = Image.new('RGBA', (S, S), (0, 0, 0, 0))
 icon.paste(bg, (0, 0), mask)
 
-# ---- hình: 4 làn + tam giác Play
-shape = Image.new('L', (S, S), 0)
-bw, gap, cy = 84, 46, 512
-heights = [250, 430, 330, 520]
-x0 = 150
-for i, h in enumerate(heights):
-    x = x0 + i * (bw + gap)
-    rr(shape, (x, cy - h // 2, x + bw, cy + h // 2), bw // 2)
-# tam giác Play, bo góc bằng cách làm mờ rồi cắt ngưỡng
+# ---- hình: nút Play đặc, bên trong khoét 3 thanh sóng âm (làn)
+xl, xr, top, bot = 236, 812, 186, 838
+cy = (top + bot) // 2
 tri = Image.new('L', (S, S), 0)
-tx = x0 + 4 * (bw + gap) + 10
-ImageDraw.Draw(tri).polygon([(tx + 20, cy - 270), (tx + 20, cy + 270), (tx + 300, cy)], fill=255)
-tri = tri.filter(ImageFilter.GaussianBlur(26)).point(lambda v: 255 if v > 140 else 0).filter(ImageFilter.GaussianBlur(1.2))
-shape = ImageChops.lighter(shape, tri)
+ImageDraw.Draw(tri).polygon([(xl, top), (xl, bot), (xr, cy)], fill=255)
+tri = tri.filter(ImageFilter.GaussianBlur(30)).point(lambda v: 255 if v > 150 else 0).filter(ImageFilter.GaussianBlur(1.2))
+cut = Image.new('L', (S, S), 0)
+for cx, h in ((372, 190), (458, 310), (544, 210)):
+    ImageDraw.Draw(cut).rounded_rectangle((cx - 28, cy - h // 2, cx + 28, cy + h // 2), 28, fill=255)
+shape = ImageChops.subtract(tri, cut)
+x0, tx = xl, xr - 320
 
 # ---- tô màu chuyển ngang: xanh ngọc -> xanh dương -> tím -> hồng
 stops = [(0.0, (34, 227, 255)), (0.4, (59, 130, 246)), (0.72, (150, 90, 250)), (1.0, (236, 120, 250))]
@@ -49,7 +46,7 @@ def grad(t):
     return stops[-1][1]
 fill = Image.new('RGBA', (S, S))
 fp = fill.load()
-xmin, xmax = x0, tx + 320
+xmin, xmax = xl, xr
 cols = [grad(min(1, max(0, (x - xmin) / (xmax - xmin)))) for x in range(S)]
 for y in range(S):
     for x in range(S):
